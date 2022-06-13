@@ -1,10 +1,6 @@
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import java.io.PrintWriter
-import java.util.*
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 internal class JdbcQueryParameterAdapterTest {
     private val adapter = JdbcQueryParameterAdapter()
@@ -31,7 +27,7 @@ internal class JdbcQueryParameterAdapterTest {
     }
 }
 
-internal class DollarReferenceQueryParameterModeTest {
+internal class DollarReferenceQueryParameterAdapterTest {
     private val adapter = DollarReferenceQueryParameterAdapter()
 
     @Test
@@ -53,43 +49,5 @@ internal class DollarReferenceQueryParameterModeTest {
         assertThrows<IndexOutOfBoundsException>("Query parameter reference not found in parameters: $1.") {
             adapter.adaptParameters(references, listOf())
         }
-    }
-}
-
-internal class TransactionsKtTest {
-    private fun loadHikariProperties() = Properties().apply {
-        setProperty("dataSourceClassName", "org.postgresql.ds.PGSimpleDataSource")
-        setProperty("dataSource.databaseName", "jdbck")
-        setProperty("dataSource.serverName", "localhost")
-        setProperty("dataSource.portNumber", "5431")
-        setProperty("dataSource.user", "test")
-        setProperty("dataSource.password", "password")
-        this["dataSource.logWriter"] = PrintWriter(System.out)
-    }
-
-    private val db = SqlDatabase(loadHikariProperties(), JdbcQueryParameterAdapter())
-
-    @AfterEach
-    fun closeDb() {
-        db.close()
-    }
-
-    @Test
-    fun rawTransaction() {
-        val results = ArrayList<List<Any>>()
-        db.transaction {
-            preparedQuery("SELECT * FROM entities WHERE jsonbColumn -> 'longValue' = to_jsonb(?)") {
-                execute(listOf(123L)) {
-                    while (next()) {
-                        val obj = ArrayList<Any>()
-                        for (i in 1..metaData.columnCount) {
-                            obj.add(getObject(i))
-                        }
-                        results.add(obj)
-                    }
-                }
-            }
-        }
-        assertTrue(results.size > 0)
     }
 }
