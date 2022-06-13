@@ -3,7 +3,21 @@
 A project for exploring Kotlin Builders, Coroutines, and JDBC connectivity.
 
 - https://jdbc.postgresql.org/documentation/head/index.html
-- https://docs.oracle.com/javase/tutorial/jdbc/basics/index.html 
+- https://docs.oracle.com/javase/tutorial/jdbc/basics/index.html
+- [kotlin-coroutines-jdbc](https://github.com/michaelbull/kotlin-coroutines-jdbc)
+
+Additional resources, each building on the other:
+
+- https://proandroiddev.com/what-is-concurrent-access-to-mutable-state-f386e5cb8292
+- https://elizarov.medium.com/blocking-threads-suspending-coroutines-d33e11bf4761
+- https://elizarov.medium.com/explicit-concurrency-67a8e8fd9b25
+- https://elizarov.medium.com/structured-concurrency-722d765aa952
+- https://elizarov.medium.com/coroutine-context-and-scope-c8b255d59055
+
+Performance considerations:
+- https://suchakjani.medium.com/non-blocking-jdbc-early-2021-update-b8b2a24a3b83#35d5
+- https://technology.amis.nl/software-development/performance-and-tuning/spring-blocking-vs-non-blocking-r2dbc-vs-jdbc-and-webflux-vs-web-mvc/
+
 
 ```postgresql
 create table entities
@@ -40,7 +54,7 @@ VALUES (
 
 JDBC PosgreSQL driver
 - Blocking API
-- Oracle was working on non-blocking extensions to JDBC but abandoned the project with expectations that Loom would bring Fibers to the JVM and allow existing JDBC drivers to function in a non-blocking fashion.
+- Oracle was working on non-blocking extensions to JDBC but abandoned the project with expectations that [Loom](https://openjdk.java.net/projects/loom/) would bring Fibers to the JVM and allow existing JDBC drivers to function in a non-blocking fashion.
 - Prepared statement variables take the form "?", with values provided as a List<Any> equal in length to the number of variable references.
 
 [R2DBC PostgreSQL](https://github.com/pgjdbc/r2dbc-postgresql) driver for the reactive [R2DBC SPI](https://github.com/r2dbc/r2dbc-spi)
