@@ -60,3 +60,69 @@ JDBC PosgreSQL driver
 [R2DBC PostgreSQL](https://github.com/pgjdbc/r2dbc-postgresql) driver for the reactive [R2DBC SPI](https://github.com/r2dbc/r2dbc-spi)
 - A custom (not a JDBC driver) non-blocking alternative to JDBC.
 - Prepared statement variables take the form "$1" (matching PostgreSQL’s index parameters), with values provided using statement.bind("$1", any).
+
+```sql
+SELECT pg_typeof('["hello", "world"]'::jsonb);
+--> jsonb
+SELECT pg_typeof('["hello", "world"]'::jsonb::text);
+--> text
+
+-- Note the string constructed for the rhs must equal the output of postgres
+SELECT lower(('{"hello": ["Hello","WoRld"]}'::jsonb -> 'hello')::text) = '["hello", "world"]';
+--> true
+SELECT lower(('{"hello": ["Hello","WoRld"]}'::jsonb -> 'hello')::text) = '["hello","world"]';
+--> false
+
+-- Whenever there is a lower transform, cast the rhs to jsonb::text
+SELECT lower(('{"hello": ["Hello","WoRld"]}'::jsonb -> 'hello')::text) = '["hello", "world"]'::jsonb::text;
+--> true
+SELECT lower(('{"hello": ["Hello","WoRld",true,1]}'::jsonb -> 'hello')::text) = '["hello", "world",   true, 1]'::jsonb::text;
+--> true
+
+-- We can lowercase the text form of the JSON, then compare the jsonb. This works better for Vert.x because it will attempt to coerce the right side into text in Java and fail with:
+-- Parameter at position[1] with class = [io.vertx.core.json.JsonArray] and value = [["world"]] can not be coerced to the expected class = [java.lang.String] for encoding.
+SELECT lower(('{"hello": ["Hello","WoRld",true,1]}'::jsonb -> 'hello')::text)::jsonb = '["hello", "world",   true, 1]'::jsonb;
+--> true
+
+-- Proof that supporting UPPERCASE is not possible with the approach of running the search in SQL
+SELECT upper(('{"hello": ["Hello","WoRld",true,1]}'::jsonb -> 'hello')::text);
+--> '["HELLO", "WORLD", TRUE, 1]' (text)
+SELECT upper(('{"hello": ["Hello","WoRld",true,1]}'::jsonb -> 'hello')::text)::jsonb;
+--> [22P02] ERROR: invalid input syntax for type json Detail: Token "TRUE" is invalid. Where: JSON data, line 1: ["HELLO", "WORLD", TRUE...
+SELECT upper(('{"hello": ["Hello","WoRld",true,1]}'::jsonb -> 'hello')::text) = '["HELLO", "WORLD",   true, 1]'::jsonb::text;
+--> false
+
+SELECT ('{"hello": true}'::jsonb -> 'hello') = true;
+--> [42883] ERROR: operator does not exist: jsonb = boolean Hint: No operator matches the given name and argument types. You might need to add explicit type casts. Position: 46
+
+-- Compare to unknown, it will be coerced to jsonb
+SELECT ('{"hello": true}'::jsonb -> 'hello') = 'true';
+--> true
+SELECT ('{"hello": true}'::jsonb -> 'hello') = 'true'::jsonb;
+--> true
+SELECT ('{"hello": "true"}'::jsonb -> 'hello') = 'true'::jsonb;
+--> false
+SELECT ('{"hello": "true"}'::jsonb -> 'hello') = 'true';
+--> false
+SELECT ('{"hello": "true"}'::jsonb -> 'hello') = '"true"';
+--> true
+
+SELECT ('{"hello": null}'::jsonb -> 'hello') = 'null';
+--> true
+SELECT ('{}'::jsonb -> 'hello') = 'null';
+--> NULL
+SELECT ('{}'::jsonb -> 'hello') IS NULL;
+--> true
+SELECT ('{}'::jsonb -> 'hello') = 'undefined';
+--> [22P02] ERROR: invalid input syntax for type json Detail: Token "undefined" is invalid. Position: 35 Where: JSON data, line 1: undefined
+SELECT pg_typeof(('{}'::jsonb -> 'hello'));
+--> jsonb
+SELECT ('{}'::jsonb -> 'hello');
+--> NULL
+
+SELECT ('{world}'::text[]);
+--> {world}
+```
+    
+* Be sure to understand the driver's treatment of Java data types in prepared statement params.
+* Monitor the PostgreSQL query logs and notice the way it renders the params. This will reveal how the driver is setting what it sends for the prepared statement.
